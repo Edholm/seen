@@ -3,6 +3,7 @@ package main
 import (
     "database/sql"
     "fmt"
+    "github.com/dustin/go-humanize"
     "github.com/edholm/seendb"
     _ "github.com/lib/pq"
     "github.com/spf13/cobra"
@@ -79,6 +80,9 @@ func history(cmd *cobra.Command, args []string) {
         sqlBeg += " WHERE name=$2 AND season=$3 AND episode=$4"
         rows, err = db.Query(sqlBeg+sqlEnd, historyCount, args[0], args[1], args[2])
         handleError(err)
+    } else {
+        rows, err = db.Query(sqlBeg+sqlEnd, historyCount)
+        handleError(err)
     }
     defer rows.Close()
 
@@ -87,8 +91,9 @@ func history(cmd *cobra.Command, args []string) {
         err := rows.Scan(&name, &season, &episode, &added)
         handleError(err)
 
-        fmt.Printf("saw %v (S%02dE%02d) at %v\n",
-            name, season, episode, added.Format(time.RFC1123))
+        fmt.Printf("saw %s%-20v%s %s(%sS%s%02d%sE%s%02d%s%s)%s %v\n",
+            FgMagenta, name, Reset, FgBlue, Reset, FgCyan, season, Reset, FgGreen,
+            episode, Reset, FgBlue, Reset, humanize.Time(added))
     }
 }
 
@@ -151,7 +156,7 @@ func listShows(cmd *cobra.Command, args []string) {
         if shortFormat {
             fmt.Println(name)
         } else {
-            fmt.Println(name, "added at", added.Format(time.RFC1123))
+            fmt.Println(name, "added", humanize.Time(added))
         }
     }
 }
