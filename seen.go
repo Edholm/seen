@@ -68,22 +68,22 @@ func history(cmd *cobra.Command, args []string) {
 
     var rows *sql.Rows
     var err error
-    if len(args) == 1 {
+
+    al := len(args)
+    switch {
+    case al == 1:
         sqlBeg += " WHERE name=$2"
         rows, err = db.Query(sqlBeg+sqlEnd, historyCount, args[0])
-        handleError(err)
-    } else if len(args) == 2 {
+    case al == 2:
         sqlBeg += " WHERE name=$2 AND season=$3"
         rows, err = db.Query(sqlBeg+sqlEnd, historyCount, args[0], args[1])
-        handleError(err)
-    } else if len(args) == 3 {
+    case al == 3:
         sqlBeg += " WHERE name=$2 AND season=$3 AND episode=$4"
         rows, err = db.Query(sqlBeg+sqlEnd, historyCount, args[0], args[1], args[2])
-        handleError(err)
-    } else {
+    default:
         rows, err = db.Query(sqlBeg+sqlEnd, historyCount)
-        handleError(err)
     }
+    handleError(err)
     defer rows.Close()
 
     vlog.Println("Printing found rows...")
