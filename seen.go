@@ -156,7 +156,13 @@ func listShows(cmd *cobra.Command, args []string) {
         if shortFormat {
             fmt.Println(name)
         } else {
-            fmt.Println(name, "added", humanize.Time(added))
+            var timeStr string
+            if vlog.verbose {
+                timeStr = added.Format(time.RFC1123Z)
+            } else {
+                timeStr = humanize.Time(added)
+            }
+            fmt.Printf("%s%-30s%s added %v\n", FgMagenta, name, Reset, timeStr)
         }
     }
 }
