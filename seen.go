@@ -13,6 +13,8 @@ import (
     "time"
 )
 
+const currentVersion = "0.9 Beta"
+
 // Term colors
 const (
     Reset = "\x1b[0m"
@@ -111,6 +113,11 @@ func add(cmd *cobra.Command, args []string) {
             vlog.Println("\""+value+"\"", "already exists. Skipping...")
         }
     }
+}
+
+func version(cmd *cobra.Command, args []string) {
+    fmt.Println("Version:", currentVersion)
+    os.Exit(0)
 }
 
 func record(cmd *cobra.Command, args []string) {
@@ -217,8 +224,10 @@ Note that a show first needs to be added before it can be used in "seen history"
     }
     cmdShows.Flags().BoolVarP(&shortFormat, "short-format", "s", false, "List shows with short format.")
 
+    var cmdVersion = &cobra.Command{Use: "version", Run: version}
+
     var rootCmd = &cobra.Command{Use: "seen"}
-    rootCmd.AddCommand(cmdHistory, cmdRecord, cmdAdd, cmdShows)
+    rootCmd.AddCommand(cmdHistory, cmdRecord, cmdAdd, cmdShows, cmdVersion)
     rootCmd.PersistentFlags().BoolVarP(&vlog.verbose, "verbose", "v", false, "Show what is happening")
     rootCmd.Execute()
 }

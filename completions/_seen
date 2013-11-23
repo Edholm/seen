@@ -12,7 +12,7 @@ _seen() {
     shows=("${(@f)$(seen shows -s)}")
     case $state in
     cmd)
-        _arguments '1:Commands:(history record add shows help)'
+        _arguments '1:Commands:(version history record add shows help)'
     ;;
     *)
         case $words[2] in
