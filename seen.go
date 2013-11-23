@@ -156,22 +156,6 @@ func listShows(cmd *cobra.Command, args []string) {
     }
 }
 
-// the cli exists command
-func exists(cmd *cobra.Command, args []string) {
-    if len(args) == 0 {
-        log.Println("[Exists] You must supply a name")
-        return
-    } else if len(args) > 1 {
-        vlog.Println("Skipping existence check for", len(args)-1, "names. Only checking", args[0])
-    }
-
-    if showExists(args[0]) {
-        fmt.Println(args[0], FgGreen+"exists", Reset)
-    } else {
-        fmt.Println(args[0], "does "+FgRed+"NOT"+Reset+" exist")
-    }
-}
-
 // Query the db on whether or not the show exists
 func showExists(name string) bool {
     sql := "SELECT COUNT(1) FROM shows WHERE name=$1"
@@ -180,22 +164,6 @@ func showExists(name string) bool {
     handleError(err)
 
     return count > 0
-}
-
-func search(cmd *cobra.Command, args []string) {
-    vlog.Println("Preparing search...")
-    if len(args) == 0 {
-        log.Println("[Search] You must supply a name")
-        return
-    } else if len(args) > 1 {
-        vlog.Println("Skipping", len(args)-1, "arguments")
-    }
-
-    sql := "SELECT name FROM shows WHERE name ~* $1 LIMIT 1"
-    err := db.QueryRow(sql, args[0]).Scan(&name)
-    handleError(err)
-
-    fmt.Println(name)
 }
 
 func initCobra() {
@@ -226,18 +194,6 @@ Note that a show first needs to be added before it can be used in "seen history"
         Run: add,
     }
 
-    var cmdExists = &cobra.Command{
-        Use:   "exists [name]",
-        Short: "Print existence of supplied show",
-        Run:   exists,
-    }
-
-    var cmdSearch = &cobra.Command{
-        Use:   "search [name]",
-        Short: "Search for existence of the supplied show",
-        Run:   search,
-    }
-
     var cmdShows = &cobra.Command{
         Use:   "shows",
         Short: "List all shows added",
@@ -246,7 +202,7 @@ Note that a show first needs to be added before it can be used in "seen history"
     cmdShows.Flags().BoolVarP(&shortFormat, "short-format", "s", false, "List shows with short format.")
 
     var rootCmd = &cobra.Command{Use: "seen"}
-    rootCmd.AddCommand(cmdHistory, cmdRecord, cmdAdd, cmdExists, cmdSearch, cmdShows)
+    rootCmd.AddCommand(cmdHistory, cmdRecord, cmdAdd, cmdShows)
     rootCmd.PersistentFlags().BoolVarP(&vlog.verbose, "verbose", "v", false, "Show what is happening")
     rootCmd.Execute()
 }
