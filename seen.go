@@ -62,9 +62,24 @@ func handleError(err error) {
 
 func history(cmd *cobra.Command, args []string) {
     vlog.Println("Fetching the", historyCount, " last entries...")
+    sqlBeg := "SELECT * FROM History"
+    sqlEnd := " ORDER BY added DESC LIMIT $1"
 
-    rows, err := db.Query("SELECT * FROM History ORDER BY added DESC LIMIT $1", historyCount)
-    handleError(err)
+    var rows *sql.Rows
+    var err error
+    if len(args) == 1 {
+        sqlBeg += " WHERE name=$2"
+        rows, err = db.Query(sqlBeg+sqlEnd, historyCount, args[0])
+        handleError(err)
+    } else if len(args) == 2 {
+        sqlBeg += " WHERE name=$2 AND season=$3"
+        rows, err = db.Query(sqlBeg+sqlEnd, historyCount, args[0], args[1])
+        handleError(err)
+    } else if len(args) == 3 {
+        sqlBeg += " WHERE name=$2 AND season=$3 AND episode=$4"
+        rows, err = db.Query(sqlBeg+sqlEnd, historyCount, args[0], args[1], args[2])
+        handleError(err)
+    }
     defer rows.Close()
 
     vlog.Println("Printing found rows...")
