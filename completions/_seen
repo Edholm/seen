@@ -1,0 +1,33 @@
+#compdef seen
+# ZSH completion script
+
+_seen() {
+    local curcontext="$curcontext" state line
+    typeset -A opt_args
+
+    _arguments \
+        '1: :->cmd'\
+        '2: :->show'
+
+    shows=("${(@f)$(seen shows -s)}")
+    case $state in
+    cmd)
+        _arguments '1:Commands:(history record add exists search shows help)'
+    ;;
+    *)
+        case $words[2] in
+        history)
+            compadd "$@" $shows
+        ;;
+        record)
+            compadd "$@" $shows
+        ;;
+        exists)
+            compadd "$@" $shows
+        ;;
+        *)
+        esac
+esac
+}
+
+_seen "$@"
