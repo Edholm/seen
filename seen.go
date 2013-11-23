@@ -62,7 +62,7 @@ func handleError(err error) {
 }
 
 func history(cmd *cobra.Command, args []string) {
-    vlog.Println("Fetching the", historyCount, " last entries...")
+    vlog.Println("Fetching the", historyCount, "last entries...")
     sqlBeg := "SELECT * FROM History"
     sqlEnd := " ORDER BY added DESC LIMIT $1"
 
@@ -93,7 +93,7 @@ func history(cmd *cobra.Command, args []string) {
 
         fmt.Printf("saw %s%-20v%s %s(%sS%s%02d%sE%s%02d%s%s)%s %v\n",
             FgMagenta, name, Reset, FgBlue, Reset, FgCyan, season, Reset, FgGreen,
-            episode, Reset, FgBlue, Reset, humanize.Time(added))
+            episode, Reset, FgBlue, Reset, timeString(added))
     }
 }
 
@@ -156,15 +156,20 @@ func listShows(cmd *cobra.Command, args []string) {
         if shortFormat {
             fmt.Println(name)
         } else {
-            var timeStr string
-            if vlog.verbose {
-                timeStr = added.Format(time.RFC1123Z)
-            } else {
-                timeStr = humanize.Time(added)
-            }
-            fmt.Printf("%s%-30s%s added %v\n", FgMagenta, name, Reset, timeStr)
+            fmt.Printf("%s%-30s%s added %v\n", FgMagenta, name, Reset, timeString(added))
         }
     }
+    vlog.Println(count, "shows listed")
+}
+
+// Humanized or verbose time to string converter
+func timeString(t time.Time) (str string) {
+    if vlog.verbose {
+        str = added.Format(time.RFC1123Z)
+    } else {
+        str = humanize.Time(added)
+    }
+    return
 }
 
 // Query the db on whether or not the show exists
