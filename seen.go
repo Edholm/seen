@@ -34,17 +34,18 @@ var (
     historyCount int
     anime, scene string
     shortFormat  bool
+    onlyEpisode  bool
     vlog         VerboseLog
     db           *sql.DB
 )
 
 // We scan the SQL results into these variables
-var (
+type Show struct {
     name    string
     season  int
     episode int
     added   time.Time
-)
+}
 
 type VerboseLog struct {
     verbose bool
@@ -88,14 +89,15 @@ func history(cmd *cobra.Command, args []string) {
     handleError(err)
     defer rows.Close()
 
+    var show Show
     vlog.Println("Printing found rows...")
     for rows.Next() {
-        err := rows.Scan(&name, &season, &episode, &added)
+        err := rows.Scan(&show.name, &show.season, &show.episode, &show.added)
         handleError(err)
 
         fmt.Printf("saw %s%-20v%s %s(%sS%s%02d%sE%s%02d%s%s)%s %v\n",
-            FgMagenta, name, Reset, FgBlue, Reset, FgCyan, season, Reset, FgGreen,
-            episode, Reset, FgBlue, Reset, timeString(added))
+            FgMagenta, show.name, Reset, FgBlue, Reset, FgCyan, show.season, Reset, FgGreen,
+            show.episode, Reset, FgBlue, Reset, timeString(show.added))
     }
 }
 
@@ -126,6 +128,7 @@ func record(cmd *cobra.Command, args []string) {
         log.Println("Wrong number of arguments supplied. Supplied:", len(args), "Need 3")
     }
 
+    var name string
     sql := "INSERT INTO history(name, season, episode) VALUES($1, $2, $3)"
     for i := 0; i < len(args); i += 3 {
         name = args[i]
@@ -133,7 +136,7 @@ func record(cmd *cobra.Command, args []string) {
         episode, err2 := strconv.Atoi(args[i+2])
 
         if err != nil || err2 != nil {
-            log.Println("Unable to parse season or episode for", "\""+args[i]+"\".", "Season:", args[i+1], "Episode:", args[i+2]+".", "Skipping...")
+            log.Println("Unable to parse season or episode for", "\""+args[i]+"\".", "Season:", season, "Episode:", episode, "Skipping...")
             continue
         }
 
@@ -154,7 +157,11 @@ func listShows(cmd *cobra.Command, args []string) {
     rows, err := db.Query(sql)
     handleError(err)
 
-    var count int
+    var (
+        name  string
+        added time.Time
+        count int
+    )
     for rows.Next() {
         err := rows.Scan(&name, &added)
         handleError(err)
@@ -169,13 +176,36 @@ func listShows(cmd *cobra.Command, args []string) {
     vlog.Println(count, "shows listed")
 }
 
+func printNext(cmd *cobra.Command, args []string) {
+    for _, name := range args {
+        show, err := getShow(name)
+        if err == sql.ErrNoRows {
+            log.Println("Couldn't find", name, "in database")
+            continue
+        } else if err != nil {
+            handleError(err)
+        }
+        if !onlyEpisode {
+            fmt.Printf("%s: S%02dE%02d\n", show.name, show.season, show.episode+1)
+        } else {
+            fmt.Println(show.episode + 1)
+        }
+    }
+}
+
 // Humanized or verbose time to string converter
 func timeString(t time.Time) (str string) {
     if vlog.verbose {
-        str = added.Format(time.RFC1123Z)
+        str = t.Format(time.RFC1123Z)
     } else {
-        str = humanize.Time(added)
+        str = humanize.Time(t)
     }
+    return
+}
+
+func getShow(name string) (show Show, err error) {
+    sqlStmt := "SELECT * FROM history WHERE name = $1 ORDER BY added DESC LIMIT 1"
+    err = db.QueryRow(sqlStmt, name).Scan(&show.name, &show.season, &show.episode, &show.added)
     return
 }
 
@@ -224,10 +254,17 @@ Note that a show first needs to be added before it can be used in "seen history"
     }
     cmdShows.Flags().BoolVarP(&shortFormat, "short-format", "s", false, "List shows with short format.")
 
+    var cmdNext = &cobra.Command{
+        Use:   "next [name]",
+        Short: "Print the next episode. E.g. Macgyver: S01E02",
+        Run:   printNext,
+    }
+    cmdNext.Flags().BoolVarP(&onlyEpisode, "episode", "e", false, "List only the next episode(s).")
+
     var cmdVersion = &cobra.Command{Use: "version", Run: version}
 
     var rootCmd = &cobra.Command{Use: "seen"}
-    rootCmd.AddCommand(cmdHistory, cmdRecord, cmdAdd, cmdShows, cmdVersion)
+    rootCmd.AddCommand(cmdHistory, cmdRecord, cmdAdd, cmdShows, cmdVersion, cmdNext)
     rootCmd.PersistentFlags().BoolVarP(&vlog.verbose, "verbose", "v", false, "Show what is happening")
     rootCmd.Execute()
 }
