@@ -2,32 +2,83 @@
 # ZSH completion script
 
 _seen() {
-    local curcontext="$curcontext" state line
+    local context curcontext="$curcontext" state line
     typeset -A opt_args
 
-    _arguments \
-        '1: :->cmd'\
-        '2: :->show'
+    _arguments -C \
+        '1: :_seen_cmds' \
+        '*::arg:->args' \
+      && ret=0
 
-    shows=("${(@f)$(seen shows -s)}")
+
     case $state in
-    cmd)
-        _arguments '1:Commands:(version history record add shows help)'
-    ;;
-    *)
-        case $words[2] in
-        history)
-            compadd "$@" $shows
-        ;;
-        record)
-            compadd "$@" $shows
-        ;;
-        exists)
-            compadd "$@" $shows
-        ;;
-        *)
-        esac
-esac
+        (args)
+            curcontext="${curcontext%:*:*}:seen-cmd-$words[1]:"
+            case $line[1] in
+                (history)
+                    #_message 'no more arguments' && ret=0
+                    _arguments \
+                        '1:: :_seen_shows' \
+                        '2:: :_seen_season' \
+                        '3:: :_seen_nxt_ep' \
+                        '(--count)--count=[How many history lines to print (Default: 5)]' \
+                        '(--verbose)--verbose[Show what is happening]' \
+                        && ret=0
+                    ;;
+                (record)
+                    _arguments \
+                        '1:: :_seen_shows' \
+                        '2:: :_seen_season' \
+                        '3:: :_seen_nxt_ep' \
+                        '(--verbose)--verbose[Show what is happening]' \
+                        && ret=0
+                    ;;
+                (help)
+                    _arguments \
+                        '1:: :_seen_cmds' \
+                        && ret=0
+                    ;;
+                (next)
+                    _arguments \
+                        '1:: :_seen_shows' \
+                        && ret=0
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_seen_cmds() {
+  local commands; commands=(
+    'history:Print the history'
+    'record:Add the supplied show to history'
+    'add:Add new shows to the database'
+    'shows:List all shows added'
+    'version:Print the version number'
+    'next:Print the next episode. E.g. Macgyver: S01E02'
+    'help:Help about any command'
+  )
+  _describe -t commands 'seen command' commands "$@"
+}
+
+(( $+functions[_seen_shows] )) ||
+_seen_shows() {
+    shows=("${(@f)$(seen shows -s)}")
+    _describe 'seen shows' shows "$@"
+}
+
+(( $+functions[_seen_nxt_ep] )) ||
+_seen_nxt_ep() {
+    nxtEpisode=1
+    _describe 'seen nxt ep' $nxtEpisode "$@"
+}
+
+(( $+functions[_seen_season] )) ||
+_seen_season() {
+    #local show=$(echo $words[2] | sed -e 's/^ *//g' -e 's/ *$//g')
+    #local season=$(seen next $words[2] 2>/dev/null | grep -oEi "S[0-9][0-9]E[0-9][0-9]")
+    local season=1
+    _describe 'seen season' $season "$@"
 }
 
 _seen "$@"
