@@ -31,6 +31,7 @@ const (
 
 // Flag related variables
 var (
+    delay        string
     historyCount int
     anime, scene string
     shortFormat  bool
@@ -122,6 +123,15 @@ func version(cmd *cobra.Command, args []string) {
     os.Exit(0)
 }
 
+func delayToTimestamp(d string) time.Time {
+    duration, err := time.ParseDuration(d)
+    if err != nil {
+        handleError(err)
+    }
+
+    return time.Now().Add(duration)
+}
+
 func record(cmd *cobra.Command, args []string) {
     vlog.Println("Appending history...")
     if len(args)%3 != 0 {
@@ -129,7 +139,7 @@ func record(cmd *cobra.Command, args []string) {
     }
 
     var name string
-    sql := "INSERT INTO history(name, season, episode) VALUES($1, $2, $3)"
+    sql := "INSERT INTO history(name, season, episode, added) VALUES($1, $2, $3, $4)"
     for i := 0; i < len(args); i += 3 {
         name = args[i]
         season, err := strconv.Atoi(args[i+1])
@@ -140,7 +150,7 @@ func record(cmd *cobra.Command, args []string) {
             continue
         }
 
-        _, err3 := db.Exec(sql, name, season, episode)
+        _, err3 := db.Exec(sql, name, season, episode, delayToTimestamp(delay))
         if err3 != nil {
             log.Println(FgRed+"Unable to add", "\""+name+"\"", "to the database. Msg: ", err3.Error(), Reset)
         }
@@ -236,6 +246,7 @@ by default it prints the last 5 history items`,
 are ignored. The name, season and episode is parsed from the file name supplied.`,
         Run: record,
     }
+    cmdRecord.Flags().StringVarP(&delay, "delay", "d", "0s", "Delay recording by this much. Accepts 10s, 10m, 10h")
     //cmdRecord.Flags().StringVarP(&scene, "scene", "s", "", "Scene based file name to parse")
     //cmdRecord.Flags().StringVarP(&anime, "anime", "a", "", "Anime file name to parse")
 
